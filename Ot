@@ -1,0 +1,185 @@
+//SIMPLEX
+clc
+clear all;
+A=[1 1;3 2];B=[5;12];constr=[1;1];c=[6 5];objective=1;
+[m,nn]=size(A);
+%%Convert Into Standard Form
+slackSurplus=1;
+E=eye(m);
+for i=1:m
+    if constr(i)==1
+        Aug(i,:)=[A(i,:) E(slackSurplus,:)];
+        slackSurplus=slackSurplus+1;
+    elseif constr(i)==-1
+        Aug(i,:)=[A(i,:) -E(slackSurplus,:)];
+        slackSurplus=slackSurplus+1;
+    else
+        Aug(i,:)=[A(i,:) zeros(1,m)];
+    end
+end
+
+%%First Simplex
+Aug=[Aug B];[m,n]=size(Aug);
+cost=[c zeros(1,n-nn-1)];
+BV=zeros(m,1);
+optima=0;
+
+%%New
+ while(optima==0)
+for i=1:n-1
+    if(sum(Aug(:,i)==0)==m-1 && sum(Aug(:,i)==1)==1)
+        col=find(Aug(:,i)==1);
+        BV(col)=i;
+    end
+end
+    BV;
+obj_val=cost(BV)*Aug(:,end);
+zj=cost(BV)*Aug(:,1:n-1);
+zj_cj=zj-cost;
+%Table=[AUG;[zj_cj obj_val]]
+fprintf('Current Obj Value is %f\n',obj_val);
+[value,entry]=min(zj_cj);
+if value>=0
+    fprintf('Optima reached with value %f \n',obj_val);
+    optima=1;
+    continue;
+
+end
+ratio=Aug(:,n)./Aug(:,entry);
+ratio(Aug(:,entry)<0 | Aug(:,entry)==0)=NaN;
+
+[min_ratio,leave]=min(ratio);
+pivot=Aug(leave,entry);
+Aug(leave,:)=Aug(leave,:)/pivot;
+Aug(leave,entry)=1;
+for k=1:m
+    if k==leave
+        continue;
+    end
+    multi=Aug(k,entry);
+    Aug(k,:)=-multi*Aug(leave,:)+Aug(k,:);
+end
+ end
+
+
+//BIG M
+
+clc
+clear all
+Aug=[1 2 -1 1 0 0 ; 3 1 0 0 1 0;1 0 0 0 0 1 ];
+B=[2;3;4];
+constr=[1;1;1;1];
+cost=[-1 3 0 -1000 0 0];
+M=10000;
+
+objective=1;
+ %%Convert into standard form by adding slack/surplus
+ Aug=[Aug B]; [m,n]=size(Aug);
+ BV=zeros(m,1);
+ optima=0;
+ Aug
+ 
+ %%
+ while(optima==0) 
+     for i=1:n-1
+         
+%%an identity column should contain m values
+if(sum(Aug(:,i)==0)==m-1 && sum(Aug(:,i)==1))
+    col=find(Aug(:,i)==1);
+    BV(col)=i;
+end
+     end
+% end
+ BV;
+ 
+ obj_value=cost(BV)*Aug(:,end);
+ zj=cost(BV)*Aug(:,1:n-1);
+ zj_cj=zj-cost;
+ 
+ fprintf('The current objective value is %f \n', obj_value);
+ [value,entry]=min(zj_cj);
+ if value >= 0
+     fprintf('Optima has been reached with the value %f \n', obj_value);
+     optima=1;
+     continue;
+ end
+ 
+ ratio=Aug(:,n)./Aug(:,entry);
+ ratio(Aug(:,entry) < 0 | Aug(:,entry)==0) = NaN;
+ [min_ratio, leave] = min(ratio);
+ pivot=Aug(leave,entry);
+ Aug(leave,:)=Aug(leave,:)/pivot;
+ Aug(leave,entry)=1;
+ 
+ for k=1:m
+     if k == leave
+         continue;
+     end
+     multi=Aug(k,entry);        %multiplier
+     Aug(k,:)=-multi*Aug(leave,:)+Aug(k,:);
+ end
+ end
+
+
+
+//GRADIENT DESCENT
+clc;
+clear all;
+f=@(x,y) -4*x-6*y+2*x.^2+2*x.*y+2*y.^2;
+syms fs xs ys
+fs= -4*xs-6*ys+2*xs.^2+2*xs.*ys+2*ys.^2;
+x=-5:0.03:5;
+y=-5:0.03:5;
+[X,Y]=meshgrid(x,y);
+Z=f(X,Y);
+surf(X,Y,Z)
+pathx=[];pathy=[];pathz=[];
+
+xo=1;yo=1;lambda=0.001;
+gx=inline(diff(fs,xs));
+gy=inline(diff(fs,ys));
+g=[gx(xo,yo);gy(xo,yo)];
+while norm(g,2)>0.005
+    xo=xo-lambda*gx(xo,yo);
+    yo=yo-lambda*gy(xo,yo);
+    val=f(xo,yo);
+    g=[gx(xo,yo);gy(xo,yo)];
+    pathx=[pathx xo];
+    pathy=[pathy yo];
+    pathz=[pathz val];
+end
+hold on;
+scatter3(pathx,pathy,pathz);
+xo
+yo
+val
+
+//LEASTCOST
+A=[10 2 20 11;
+    12 7 9 20;
+    4 14 16 18];
+Acost=A;
+S=[15 25 5];D=[5;15;15;10];
+[m,n]=size(A);alloc=0;
+B=zeros(m,n);
+while alloc<m+n-1
+    val=min(A(:));
+    [r,c]=find(A==val);
+    if numel(r)>1
+        r=r(1);
+        c=c(1);
+    end
+    B(r,c)=min(S(r),D(c));
+    S(r)=S(r)-B(r,c);
+    D(c)=D(c)-B(r,c);
+    if D(c)==0 && S(r)==0
+        A(:,c)=NaN;
+        S(r)=10^(-15);
+    elseif D(c)>0 & S(r)==0
+           A(r,:)=NaN;
+    else
+            A(:,c)=NaN;
+        end
+        alloc=alloc+1;
+end
+Final=sum(sum(Acost.*B))
